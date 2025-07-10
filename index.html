@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多AI并行运算简易模型</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a1a4c, #1a2a6c);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            color: white;
+            position: relative;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .settings-btn {
+            position: absolute;
+            top: 30px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: rotate(30deg);
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .api-status-bar {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ccc;
+        }
+        
+        .status-dot.connected {
+            background: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.7);
+        }
+        
+        .token-count {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .token-progress {
+            width: 200px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .token-progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #4CAF50, #8BC34A);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .question-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .question-section h2 {
+            margin-bottom: 20px;
+            color: #1a2a6c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .question-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        .question-input:focus {
+            outline: none;
+            border-color: #4a6fcb;
+            box-shadow: 0 0 0 3px rgba(74, 111, 203, 0.2);
+        }
+        
+        .ai-selector {
+            margin-top: 25px;
+        }
+        
+        .ai-selector h3 {
+            margin-bottom: 15px;
+            color: #1a2a6c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ai-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        
+        .ai-option {
+            background: #f5f7ff;
+            border: 2px solid #e0e5ff;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .ai-option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .ai-option.selected {
+            background: #eef2ff;
+            border-color: #4a6fcb;
+            box-shadow: 0 0 0 3px rgba(74, 111, 203, 0.2);
+        }
+        
+        .ai-option .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+        
+        .ai-option .name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 25px;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 14px 30px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(to right, #4a6fcb, #6a5acd);
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 111, 203, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(74, 111, 203, 0.6);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #4a6fcb;
+            color: #4a6fcb;
+        }
+        
+        .btn-outline:hover {
+            background: #f0f4ff;
+        }
+        
+        .answers-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+        }
+        
+        .answer-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .answer-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: linear-gradient(to right, #4a6fcb, #6a5acd);
+            color: white;
+        }
+        
+        .answer-header .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .answer-header .ai-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .answer-content {
+            padding: 25px;
+            line-height: 1.7;
+            font-size: 1.1rem;
+            flex-grow: 1;
+            min-height: 250px;
+            background: #f9faff;
+            overflow-y: auto;
+        }
+        
+        .answer-content.loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(74, 111, 203, 0.2);
+            border-top: 5px solid #4a6fcb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px 0;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+        
+        /* 设置模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: modalIn 0.3s ease-out;
+        }
+        
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .modal-header h2 {
+            color: #1a2a6c;
+            font-size: 1.5rem;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #777;
+            transition: color 0.3s;
+        }
+        
+        .close-modal:hover {
+            color: #333;
+        }
+        
+        /* 标签页样式 */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            background: #f5f7ff;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: white;
+            border-color: #4a6fcb;
+            color: #4a6fcb;
+            font-weight: 600;
+            position: relative;
+            top: 1px;
+            border-bottom: 1px solid white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .api-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #444;
+            font-size: 0.95rem;
+        }
+        
+        .form-input {
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #4a6fcb;
+            box-shadow: 0 0 0 3px rgba(74, 111, 203, 0.2);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .modal-btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-save {
+            background: linear-gradient(to right, #4a6fcb, #6a5acd);
+            color: white;
+            box-shadow: 0 4px 10px rgba(74, 111, 203, 0.3);
+        }
+        
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(74, 111, 203, 0.4);
+        }
+        
+        .btn-clear {
+            background: #f5f7ff;
+            color: #4a6fcb;
+            border: 2px solid #e0e5ff;
+        }
+        
+        .btn-clear:hover {
+            background: #eef2ff;
+        }
+        
+        .api-docs {
+            background: #f9faff;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        
+        .api-docs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .copy-btn {
+            background: #4a6fcb;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s;
+        }
+        
+        .copy-btn:hover {
+            background: #3a5fb3;
+        }
+        
+        @media (max-width: 900px) {
+            .answers-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .ai-options {
+                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            }
+            
+            .api-status-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .question-section {
+                padding: 20px;
+            }
+            
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .token-progress {
+                width: 150px;
+            }
+            
+            .modal-content {
+                padding: 15px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                border-radius: 5px;
+                margin-bottom: 5px;
+                border-bottom: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-brain"></i> 多AI并行运算简易模型</h1>
+            <p>使用国家超算平台提供的100万Tokens免费额度</p>
+            <button class="settings-btn" id="settings-btn">
+                <i class="fas fa-cog"></i>
+            </button>
+        </header>
+        
+        <div class="api-status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">API未连接</span>
+            </div>
+            <div class="token-count">
+                <span>已用Token: <strong id="used-tokens">0</strong></span>
+                <div class="token-progress">
+                    <div class="token-progress-bar" id="token-progress"></div>
+                </div>
+                <span>剩余Token: <strong id="remaining-tokens">1,000,000</strong></span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <section class="question-section">
+                <h2><i class="fas fa-question-circle"></i> 输入您的问题</h2>
+                <textarea class="question-input" id="question-input" placeholder="请输入您想要提问的内容...">如何提高深度学习的模型训练效率？有哪些实用技巧？</textarea>
+                
+                <div class="ai-selector">
+                    <h3><i class="fas fa-microchip"></i> 选择AI模型（可多选）</h3>
+                    <div class="ai-options">
+                        <div class="ai-option selected" data-ai="deepseek">
+                            <div class="logo" style="background: linear-gradient(135deg, #4a6fcb, #1a2a6c);">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="name">DeepSeek-R1</div>
+                        </div>
+                        <div class="ai-option selected" data-ai="kimi">
+                            <div class="logo" style="background: linear-gradient(135deg, #ff6b6b, #c0392b);">
+                                <i class="fas fa-comment-dots"></i>
+                            </div>
+                            <div class="name">Kimi Chat</div>
+                        </div>
+                        <div class="ai-option" data-ai="qwen">
+                            <div class="logo" style="background: linear-gradient(135deg, #27ae60, #2ecc71);">
+                                <i class="fas fa-leaf"></i>
+                            </div>
+                            <div class="name">通义千问</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="btn btn-primary" id="ask-btn">
+                        <i class="fas fa-paper-plane"></i> 开始提问
+                    </button>
+                    <button class="btn btn-outline" id="clear-btn">
+                        <i class="fas fa-eraser"></i> 清空所有
+                    </button>
+                </div>
+            </section>
+            
+            <section class="answers-section" id="answers-container">
+                <!-- AI回答将在这里动态生成 -->
+            </section>
+        </div>
+        
+        <footer class="footer">
+            <p>© 2025 多AI并行运算简易模型 | 国家超算平台提供100万Tokens免费额度 | 数据更新于2025年7月</p>
+        </footer>
+    </div>
+    
+    <!-- 设置模态框 -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> AI模型配置</h2>
+                <button class="close-modal" id="close-modal">&times;</button>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" data-tab="deepseek">DeepSeek</div>
+                <div class="tab" data-tab="kimi">Kimi</div>
+                <div class="tab" data-tab="qwen">通义千问</div>
+            </div>
+            
+            <!-- DeepSeek 配置 -->
+            <div class="tab-content active" id="deepseek-tab">
+                <div class="api-form">
+                    <div class="form-group">
+                        <label for="deepseek-api">API密钥</label>
+                        <input type="password" id="deepseek-api" class="form-input" placeholder="在此粘贴您的DeepSeek API密钥">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="deepseek-endpoint">API端点</label>
+                        <input type="text" id="deepseek-endpoint" class="form-input" value="https://api.scnet.cn/api/llm/v1/chat/completions">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="deepseek-model">模型名称</label>
+                        <input type="text" id="deepseek-model" class="form-input" value="DeepSeek-R1-Distill-Qwen-7B">
+                    </div>
+                    
+                    <div class="api-docs">
+                        <div class="api-docs-header">
+                            <strong>API调用示例</strong>
+                            <button class="copy-btn" id="copy-curl">
+                                <i class="fas fa-copy"></i> 复制CURL
+                            </button>
+                        </div>
+                        <pre id="curl-example">curl 'https://api.scnet.cn/api/llm/v1/chat/completions' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer &lt;API Key&gt;" \
+  -d '{
+    "model": "DeepSeek-R1-Distill-Qwen-7B",
+    "messages": [
+      {"role": "system", "content": "你是一个乐于助人的助手"},
+      {"role": "user", "content": "你好！"}
+    ],
+    "stream": false
+  }'</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Kimi 配置 -->
+            <div class="tab-content" id="kimi-tab">
+                <div class="api-form">
+                    <div class="form-group">
+                        <label for="kimi-api">API密钥</label>
+                        <input type="password" id="kimi-api" class="form-input" placeholder="在此粘贴您的Kimi API密钥">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="kimi-endpoint">API端点</label>
+                        <input type="text" id="kimi-endpoint" class="form-input" value="https://api.moonshot.cn/v1/chat/completions">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="kimi-model">模型名称</label>
+                        <input type="text" id="kimi-model" class="form-input" value="moonshot-v1-8k">
+                    </div>
+                    
+                    <div class="api-docs">
+                        <div class="api-docs-header">
+                            <strong>Kimi API调用示例</strong>
+                        </div>
+                        <pre>curl 'https://api.moonshot.cn/v1/chat/completions' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer &lt;API Key&gt;" \
+  -d '{
+    "model": "moonshot-v1-8k",
+    "messages": [
+      {"role": "system", "content": "你是一个乐于助人的助手"},
+      {"role": "user", "content": "你好！"}
+    ],
+    "stream": false
+  }'</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 通义千问 配置 -->
+            <div class="tab-content" id="qwen-tab">
+                <div class="api-form">
+                    <div class="form-group">
+                        <label for="qwen-api">API密钥</label>
+                        <input type="password" id="qwen-api" class="form-input" placeholder="在此粘贴您的通义千问API密钥">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="qwen-endpoint">API端点</label>
+                        <input type="text" id="qwen-endpoint" class="form-input" value="https://api.siliconflow.cn/v1/chat/completions">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="qwen-model">模型名称</label>
+                        <input type="text" id="qwen-model" class="form-input" value="Qwen/QwQ-32B">
+                    </div>
+                    
+                    <div class="api-docs">
+                        <div class="api-docs-header">
+                            <strong>通义千问 API调用示例</strong>
+                        </div>
+                        <pre>curl 'https://api.siliconflow.cn/v1/chat/completions' \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer &lt;API Key&gt;" \
+  -d '{
+    "model": "Qwen/QwQ-32B",
+    "messages": [
+      {"role": "system", "content": "你是一个乐于助人的助手"},
+      {"role": "user", "content": "你好！"}
+    ],
+    "stream": false
+  }'</pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn btn-save" id="save-api">
+                    <i class="fas fa-save"></i> 保存配置
+                </button>
+                <button class="modal-btn btn-clear" id="clear-api">
+                    <i class="fas fa-trash-alt"></i> 清除所有
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsModal = document.getElementById('settings-modal');
+            const closeModal = document.getElementById('close-modal');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const deepseekApiInput = document.getElementById('deepseek-api');
+            const deepseekEndpointInput = document.getElementById('deepseek-endpoint');
+            const deepseekModelInput = document.getElementById('deepseek-model');
+            const kimiApiInput = document.getElementById('kimi-api');
+            const kimiEndpointInput = document.getElementById('kimi-endpoint');
+            const kimiModelInput = document.getElementById('kimi-model');
+            const qwenApiInput = document.getElementById('qwen-api');
+            const qwenEndpointInput = document.getElementById('qwen-endpoint');
+            const qwenModelInput = document.getElementById('qwen-model');
+            const saveApiBtn = document.getElementById('save-api');
+            const clearApiBtn = document.getElementById('clear-api');
+            const copyCurlBtn = document.getElementById('copy-curl');
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            const usedTokensEl = document.getElementById('used-tokens');
+            const remainingTokensEl = document.getElementById('remaining-tokens');
+            const tokenProgress = document.getElementById('token-progress');
+            const aiOptions = document.querySelectorAll('.ai-option');
+            const askBtn = document.getElementById('ask-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const questionInput = document.getElementById('question-input');
+            const answersContainer = document.getElementById('answers-container');
+            const curlExample = document.getElementById('curl-example');
+            
+            // 初始化变量
+            let deepseekApiKey = '';
+            let deepseekEndpoint = 'https://api.scnet.cn/api/llm/v1/chat/completions';
+            let deepseekModel = 'DeepSeek-R1-Distill-Qwen-7B';
+            let kimiApiKey = '';
+            let kimiEndpoint = 'https://api.moonshot.cn/v1/chat/completions';
+            let kimiModel = 'moonshot-v1-8k';
+            let qwenApiKey = '';
+            let qwenEndpoint = 'https://api.siliconflow.cn/v1/chat/completions';
+            let qwenModel = 'Qwen/QwQ-32B';
+            let tokenUsage = 0;
+            const maxTokens = 1000000; // 100万Token免费额度
+            const selectedAIs = ['deepseek', 'kimi'];
+            
+            // 检查本地存储中是否有保存的API密钥
+            if (localStorage.getItem('deepseekApiKey')) {
+                deepseekApiKey = localStorage.getItem('deepseekApiKey');
+                deepseekEndpoint = localStorage.getItem('deepseekEndpoint') || deepseekEndpoint;
+                deepseekModel = localStorage.getItem('deepseekModel') || deepseekModel;
+                updateApiStatus(true);
+            }
+            if (localStorage.getItem('kimiApiKey')) {
+                kimiApiKey = localStorage.getItem('kimiApiKey');
+                kimiEndpoint = localStorage.getItem('kimiEndpoint') || kimiEndpoint;
+                kimiModel = localStorage.getItem('kimiModel') || kimiModel;
+            }
+            if (localStorage.getItem('qwenApiKey')) {
+                qwenApiKey = localStorage.getItem('qwenApiKey');
+                qwenEndpoint = localStorage.getItem('qwenEndpoint') || qwenEndpoint;
+                qwenModel = localStorage.getItem('qwenModel') || qwenModel;
+            }
+            
+            // 打开设置模态框
+            settingsBtn.addEventListener('click', function() {
+                settingsModal.style.display = 'flex';
+                deepseekApiInput.value = deepseekApiKey;
+                deepseekEndpointInput.value = deepseekEndpoint;
+                deepseekModelInput.value = deepseekModel;
+                kimiApiInput.value = kimiApiKey;
+                kimiEndpointInput.value = kimiEndpoint;
+                kimiModelInput.value = kimiModel;
+                qwenApiInput.value = qwenApiKey;
+                qwenEndpointInput.value = qwenEndpoint;
+                qwenModelInput.value = qwenModel;
+            });
+            
+            // 关闭设置模态框
+            closeModal.addEventListener('click', function() {
+                settingsModal.style.display = 'none';
+            });
+            
+            // 点击模态框外部关闭
+            settingsModal.addEventListener('click', function(e) {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+            
+            // 标签页切换
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // 移除所有活动标签
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // 激活当前标签
+                    this.classList.add('active');
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // 保存API密钥
+            saveApiBtn.addEventListener('click', function() {
+                deepseekApiKey = deepseekApiInput.value.trim();
+                deepseekEndpoint = deepseekEndpointInput.value.trim();
+                deepseekModel = deepseekModelInput.value.trim();
+                
+                kimiApiKey = kimiApiInput.value.trim();
+                kimiEndpoint = kimiEndpointInput.value.trim();
+                kimiModel = kimiModelInput.value.trim();
+                
+                qwenApiKey = qwenApiInput.value.trim();
+                qwenEndpoint = qwenEndpointInput.value.trim();
+                qwenModel = qwenModelInput.value.trim();
+                
+                // 保存到本地存储
+                localStorage.setItem('deepseekApiKey', deepseekApiKey);
+                localStorage.setItem('deepseekEndpoint', deepseekEndpoint);
+                localStorage.setItem('deepseekModel', deepseekModel);
+                
+                localStorage.setItem('kimiApiKey', kimiApiKey);
+                localStorage.setItem('kimiEndpoint', kimiEndpoint);
+                localStorage.setItem('kimiModel', kimiModel);
+                
+                localStorage.setItem('qwenApiKey', qwenApiKey);
+                localStorage.setItem('qwenEndpoint', qwenEndpoint);
+                localStorage.setItem('qwenModel', qwenModel);
+                
+                updateApiStatus(true);
+                settingsModal.style.display = 'none';
+                alert('所有配置已保存成功！');
+            });
+            
+            // 清除API密钥
+            clearApiBtn.addEventListener('click', function() {
+                deepseekApiKey = '';
+                deepseekEndpoint = 'https://api.scnet.cn/api/llm/v1/chat/completions';
+                deepseekModel = 'DeepSeek-R1-Distill-Qwen-7B';
+                
+                kimiApiKey = '';
+                kimiEndpoint = 'https://api.moonshot.cn/v1/chat/completions';
+                kimiModel = 'moonshot-v1-8k';
+                
+                qwenApiKey = '';
+                qwenEndpoint = 'https://api.siliconflow.cn/v1/chat/completions';
+                qwenModel = 'Qwen/QwQ-32B';
+                
+                deepseekApiInput.value = '';
+                deepseekEndpointInput.value = deepseekEndpoint;
+                deepseekModelInput.value = deepseekModel;
+                
+                kimiApiInput.value = '';
+                kimiEndpointInput.value = kimiEndpoint;
+                kimiModelInput.value = kimiModel;
+                
+                qwenApiInput.value = '';
+                qwenEndpointInput.value = qwenEndpoint;
+                qwenModelInput.value = qwenModel;
+                
+                localStorage.removeItem('deepseekApiKey');
+                localStorage.removeItem('deepseekEndpoint');
+                localStorage.removeItem('deepseekModel');
+                
+                localStorage.removeItem('kimiApiKey');
+                localStorage.removeItem('kimiEndpoint');
+                localStorage.removeItem('kimiModel');
+                
+                localStorage.removeItem('qwenApiKey');
+                localStorage.removeItem('qwenEndpoint');
+                localStorage.removeItem('qwenModel');
+                
+                updateApiStatus(false);
+                alert('所有API密钥和配置已清除！');
+            });
+            
+            // 复制CURL命令
+            copyCurlBtn.addEventListener('click', function() {
+                const textArea = document.createElement('textarea');
+                textArea.value = curlExample.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                // 显示复制成功反馈
+                const originalText = copyCurlBtn.innerHTML;
+                copyCurlBtn.innerHTML = '<i class="fas fa-check"></i> 已复制!';
+                setTimeout(() => {
+                    copyCurlBtn.innerHTML = originalText;
+                }, 2000);
+            });
+            
+            // 更新API状态显示
+            function updateApiStatus(isConnected) {
+                if (isConnected) {
+                    statusDot.classList.add('connected');
+                    statusText.textContent = 'API已连接';
+                } else {
+                    statusDot.classList.remove('connected');
+                    statusText.textContent = 'API未连接';
+                }
+            }
+            
+            // 更新Token计数器
+            function updateTokenCount(additionalTokens = 0) {
+                tokenUsage += additionalTokens;
+                const remaining = maxTokens - tokenUsage;
+                
+                usedTokensEl.textContent = tokenUsage.toLocaleString();
+                remainingTokensEl.textContent = remaining.toLocaleString();
+                
+                // 更新进度条
+                const percentage = (tokenUsage / maxTokens) * 100;
+                tokenProgress.style.width = `${Math.min(percentage, 100)}%`;
+                
+                // 当使用超过80%时改变颜色
+                if (percentage > 80) {
+                    tokenProgress.style.background = 'linear-gradient(to right, #FF9800, #F44336)';
+                } else if (percentage > 60) {
+                    tokenProgress.style.background = 'linear-gradient(to right, #FFC107, #FF9800)';
+                }
+            }
+            
+            // 初始化Token计数器
+            updateTokenCount();
+            
+            // 切换AI选择
+            aiOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const ai = this.dataset.ai;
+                    this.classList.toggle('selected');
+                    
+                    // 更新选中状态
+                    const index = selectedAIs.indexOf(ai);
+                    if (index === -1) {
+                        selectedAIs.push(ai);
+                    } else {
+                        selectedAIs.splice(index, 1);
+                    }
+                });
+            });
+            
+            // 提问按钮事件
+            askBtn.addEventListener('click', async function() {
+                const question = questionInput.value.trim();
+                if (!question) {
+                    alert('请输入问题内容');
+                    return;
+                }
+                
+                if (selectedAIs.length === 0) {
+                    alert('请至少选择一个AI模型');
+                    return;
+                }
+                
+                // 检查API密钥
+                if (selectedAIs.includes('deepseek') && !deepseekApiKey) {
+                    alert('请先配置DeepSeek-R1 API密钥');
+                    settingsModal.style.display = 'flex';
+                    return;
+                }
+                
+                if (selectedAIs.includes('kimi') && !kimiApiKey) {
+                    alert('请先配置Kimi API密钥');
+                    settingsModal.style.display = 'flex';
+                    return;
+                }
+                
+                if (selectedAIs.includes('qwen') && !qwenApiKey) {
+                    alert('请先配置通义千问 API密钥');
+                    settingsModal.style.display = 'flex';
+                    return;
+                }
+                
+                // 清空之前的回答
+                answersContainer.innerHTML = '';
+                
+                // 为每个选中的AI创建回答卡片
+                for (const ai of selectedAIs) {
+                    await callAIAPI(ai, question);
+                }
+            });
+            
+            // 清空按钮事件
+            clearBtn.addEventListener('click', function() {
+                questionInput.value = '';
+                answersContainer.innerHTML = '';
+                
+                // 重置所有AI选择
+                aiOptions.forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // 清空选中的AI
+                selectedAIs.length = 0;
+                
+                // 重新设置默认选择
+                ['deepseek', 'kimi'].forEach(ai => {
+                    document.querySelector(`.ai-option[data-ai="${ai}"]`).classList.add('selected');
+                    selectedAIs.push(ai);
+                });
+            });
+            
+            // 调用AI API的统一函数
+            async function callAIAPI(ai, question) {
+                const aiData = getAIData(ai);
+                const card = createCardElement(aiData);
+                answersContainer.appendChild(card);
+                
+                try {
+                    let response;
+                    let data;
+                    
+                    switch(ai) {
+                        case 'deepseek':
+                            response = await fetch(deepseekEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${deepseekApiKey}`
+                                },
+                                body: JSON.stringify({
+                                    model: deepseekModel,
+                                    messages: [
+                                        {"role": "system", "content": "你是一个乐于助人的助手"},
+                                        {"role": "user", "content": question}
+                                    ],
+                                    stream: false
+                                })
+                            });
+                            data = await response.json();
+                            break;
+                            
+                        case 'kimi':
+                            response = await fetch(kimiEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${kimiApiKey}`
+                                },
+                                body: JSON.stringify({
+                                    model: kimiModel,
+                                    messages: [
+                                        {"role": "system", "content": "你是一个乐于助人的助手"},
+                                        {"role": "user", "content": question}
+                                    ],
+                                    stream: false
+                                })
+                            });
+                            data = await response.json();
+                            break;
+                            
+                        case 'qwen':
+                            response = await fetch(qwenEndpoint, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${qwenApiKey}`
+                                },
+                                body: JSON.stringify({
+                                    model: qwenModel,
+                                    messages: [
+                                        {"role": "system", "content": "你是一个乐于助人的助手"},
+                                        {"role": "user", "content": question}
+                                    ],
+                                    stream: false
+                                })
+                            });
+                            data = await response.json();
+                            break;
+                    }
+                    
+                    if (data.choices && data.choices.length > 0) {
+                        const content = card.querySelector('.answer-content');
+                        content.classList.remove('loading');
+                        
+                        // 格式化响应内容
+                        const answer = data.choices[0].message.content;
+                        const formattedAnswer = formatAnswer(answer);
+                        content.innerHTML = formattedAnswer;
+                        
+                        // 更新Token使用量
+                        if (data.usage && data.usage.total_tokens) {
+                            updateTokenCount(data.usage.total_tokens);
+                        }
+                    } else {
+                        throw new Error('API响应格式错误');
+                    }
+                } catch (error) {
+                    const content = card.querySelector('.answer-content');
+                    content.classList.remove('loading');
+                    content.innerHTML = `<p style="color: #e53935;">API调用错误: ${error.message}</p>`;
+                    console.error(`${ai} API调用错误:`, error);
+                }
+            }
+            
+            // 获取AI数据
+            function getAIData(ai) {
+                const aiDataMap = {
+                    deepseek: { 
+                        name: 'DeepSeek-R1', 
+                        color: '#4a6fcb', 
+                        icon: 'fa-brain'
+                    },
+                    kimi: { 
+                        name: 'Kimi Chat', 
+                        color: '#ff6b6b', 
+                        icon: 'fa-comment-dots'
+                    },
+                    qwen: { 
+                        name: '通义千问', 
+                        color: '#27ae60', 
+                        icon: 'fa-leaf'
+                    }
+                };
+                
+                return aiDataMap[ai] || { 
+                    name: '未知AI', 
+                    color: '#9e9e9e', 
+                    icon: 'fa-robot'
+                };
+            }
+            
+            // 创建卡片元素
+            function createCardElement(aiData) {
+                const card = document.createElement('div');
+                card.className = 'answer-card';
+                card.innerHTML = `
+                    <div class="answer-header">
+                        <div class="logo" style="background: ${aiData.color}">
+                            <i class="fas ${aiData.icon}"></i>
+                        </div>
+                        <div class="ai-name">${aiData.name}</div>
+                    </div>
+                    <div class="answer-content loading">
+                        <div class="spinner"></div>
+                    </div>
+                `;
+                return card;
+            }
+            
+            // 格式化回答内容（将Markdown转换为HTML）
+            function formatAnswer(answer) {
+                // 替换Markdown格式为HTML
+                let formatted = answer
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // 加粗
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>') // 斜体
+                    .replace(/^-\s(.*)$/gm, '<li>$1</li>') // 无序列表
+                    .replace(/^\d+\.\s(.*)$/gm, '<li>$1</li>'); // 有序列表
+                
+                // 如果包含列表项，添加列表标签
+                if (formatted.includes('<li>')) {
+                    formatted = formatted.replace(/<li>.*<\/li>/gs, (match) => {
+                        return `<ul>${match}</ul>`;
+                    });
+                }
+                
+                // 替换换行符
+                formatted = formatted.replace(/\n/g, '<br>');
+                
+                return formatted;
+            }
+        });
+    </script>
+</body>
+</html>
